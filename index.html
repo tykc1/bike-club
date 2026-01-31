@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MFS Fun Fair 2026 - Cycling Club</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- 樣式設定 --- */
+        :root {
+            --primary: #1565C0;
+            --accent: #FFB300;
+            --bg-body: #F5F7FA;
+            --surface: #FFFFFF;
+            --text-main: #263238;
+            --text-sub: #546E7A;
+            --success: #2E7D32;
+            --error: #C62828;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Roboto', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0; padding: 0; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            -webkit-user-select: none; user-select: none; /* 禁止選取文字 */
+        }
+
+        .app-container {
+            width: 95%; max-width: 900px; height: 90vh;
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+
+        /* Header */
+        .header {
+            background: var(--primary); color: white;
+            padding: 20px; text-align: center;
+            border-bottom: 5px solid var(--accent);
+            flex-shrink: 0; z-index: 10;
+        }
+        .h-school { font-size: 1.6rem; font-weight: 700; letter-spacing: 2px; }
+        .h-event { font-size: 1.2rem; font-weight: 500; color: #E3F2FD; }
+        .h-guard { 
+            font-size: 1rem; background: rgba(255,255,255,0.15); 
+            padding: 4px 15px; border-radius: 50px; margin-top: 8px; display: inline-block;
+        }
+
+        /* 內容區：設定 z-index 確保按鈕可點擊 */
+        .main-content {
+            flex: 1; padding: 20px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            position: relative; overflow-y: auto;
+            z-index: 5; /* 關鍵修復：確保內容在遮罩層之下時不被干擾 */
+        }
+
+        /* 開場動畫遮罩 */
+        #slogan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--surface); z-index: 999;
+            display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease; /* 用 JS 控制淡出 */
+        }
+        #slogan-overlay-text {
+            font-size: 3rem; font-weight: 900; color: var(--primary);
+            animation: popIn 2.5s ease-in-out forwards;
+        }
+        @keyframes popIn { 
+            0% { transform: scale(0.8); opacity: 0; } 
+            20% { transform: scale(1); opacity: 1; } 
+            80% { opacity: 1; } 
+            100% { transform: scale(1.1); opacity: 0; } 
+        }
+
+        /* 通用元件 */
+        .hidden { display: none !important; }
+        .btn {
+            border: none; outline: none; cursor: pointer;
+            border-radius: 50px; font-weight: 500;
+            transition: all 0.2s;
+            touch-action: manipulation; /* 優化觸控反應 */
+        }
+        .btn:active { transform: scale(0.95); }
+
+        /* 語言按鈕 */
+        .btn-lang {
+            padding: 12px 30px; font-size: 1.1rem;
+            background: transparent; border: 2px solid var(--primary); 
+            color: var(--primary); margin: 0 10px;
+        }
+        .btn-lang.active { background: var(--primary); color: white; }
+
+        /* 主要按鈕 (Start) */
+        .btn-primary {
+            background: var(--accent); color: #000;
+            font-size: 1.4rem; font-weight: 700;
+            padding: 15px 60px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            margin-top: 30px; display: block;
+        }
+        .btn-primary:disabled { 
+            background: #E0E0E0; color: #9E9E9E; 
+            cursor: not-allowed; box-shadow: none; transform: none; 
+        }
+
+        /* 輸入框 */
+        input[type="text"] {
+            font-size: 1.5rem; padding: 10px; border: none; 
+            border-bottom: 2px solid var(--primary);
+            text-align: center; width: 60%; background: transparent; outline: none;
+            display: block; margin: 0 auto 20px auto;
+        }
+
+        /* 遊戲區塊 */
+        .question-box {
+            background: #FAFAFA; width: 90%; min-height: 150px;
+            border-radius: 16px; padding: 20px;
+            display: flex; justify-content: center; align-items: center;
+            margin: 20px 0; border: 1px solid #EEEEEE;
+        }
+        #question-text { font-size: 1.5rem; font-weight: 700; text-align: center; line-height: 1.4; }
+        
+        .options { display: flex; gap: 20px; width: 90%; justify-content: center; }
+        .btn-opt { flex: 1; padding: 20px; font-size: 1.5rem; color: white; border-radius: 12px; }
+        .btn-yes { background: var(--success); }
+        .btn-no { background: var(--error); }
+
+        .feedback { height: 30px; margin-top: 15px; font-size: 1.5rem; font-weight: 900; text-align: center; }
+        .fb-correct { color: var(--success); }
+        .fb-wrong { color: var(--error); }
+
+        /* 排行榜 */
+        .leaderboard-box {
+            width: 90%; background: #FFF; border: 1px solid #E0E0E0;
+            border-radius: 12px; overflow: hidden; margin-bottom: 20px; max-height: 250px; overflow-y: auto;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--primary); color: white; padding: 10px; position: sticky; top: 0; }
+        td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+        .rank-1 { background: #FFF8E1; font-weight: bold; color: var(--accent); }
+
+    </style>
+</head>
+<body>
+
+    <audio id="bgm" preload="auto">
+        <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_736854556a.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="app-container">
+        
+        <div id="slogan-overlay">
+            <div id="slogan-overlay-text">單車知識知多少</div>
+        </div>
+
+        <div class="header">
+            <div class="h-school">瑪利諾神父教會學校</div>
+            <div class="h-event">攤位遊戲日 2026</div>
+            <div class="h-guard">單車學會</div>
+        </div>
+
+        <div class="main-content">
+            
+            <div id="home-screen" class="center-wrapper">
+                <h1 style="color:var(--primary); font-size: 2.5rem; text-align: center; margin: 0 0 10px 0;">單車知識知多少</h1>
+                <p style="color:var(--text-sub); margin: 0 0 30px 0;">Cycling Knowledge Challenge</p>
+
+                <h3 id="lbl-select-lang" style="color:#78909C; font-weight:400; margin-bottom: 15px;">請選擇語言 Select Language</h3>
+
+                <div>
+                    <button class="btn btn-lang" id="btn-zh" onclick="selectLanguage('zh')">中文</button>
+                    <button class="btn btn-lang" id="btn-en" onclick="selectLanguage('en')">English</button>
+                </div>
+
+                <button id="btn-start" class="btn btn-primary" onclick="goToLogin()" disabled>
+                    開始遊戲 Start
+                </button>
+
+                <div style="position:absolute; bottom:10px; left:10px; font-size:0.8rem; color:#ccc;" onclick="clearData()">Admin Reset</div>
+            </div>
+
+            <div id="login-screen" class="center-wrapper hidden">
+                <h2 id="lbl-welcome" style="color:var(--primary); margin-bottom: 20px;">Welcome</h2>
+                <input type="text" id="username" placeholder="Enter Name..." maxlength="12" autocomplete="off">
+                <button class="btn btn-primary" onclick="startGame()" id="lbl-confirm">GO</button>
+            </div>
+
+            <div id="game-screen" class="center-wrapper hidden" style="width:100%;">
+                <div style="position:absolute; top:0; right:0; background:#E3F2FD; padding:5px 10px; border-radius:0 0 0 10px; font-weight:bold; color:var(--primary);">
+                    ⏱ <span id="game-timer">0.0</span>s
+                </div>
+                
+                <div style="color:var(--text-sub); margin-bottom:5px;">
+                    <span id="lbl-q">Q</span> 
+                    <span id="q-num" style="color:var(--primary); font-weight:bold; font-size:1.2rem;">1</span> / 10
+                </div>
+
+                <div class="question-box">
+                    <div id="question-text">Loading...</div>
+                </div>
+
+                <div class="options">
+                    <button class="btn btn-opt btn-yes" onclick="submitAnswer(true)">
+                        <span id="lbl-yes">YES</span>
+                    </button>
+                    <button class="btn btn-opt btn-no" onclick="submitAnswer(false)">
+                        <span id="lbl-no">NO</span>
+                    </button>
+                </div>
+
+                <div id="feedback-text" class="feedback"></div>
+            </div>
+
+            <div id="result-screen" class="center-wrapper hidden" style="width:100%;">
+                <h2 id="lbl-gameover" style="margin-top:0; color:var(--text-main);">Finished</h2>
+
+                <div style="display:flex; gap:30px; margin-bottom:15px;">
+                    <div style="text-align:center;">
+                        <div style="font-size:2rem; font-weight:900; color:var(--primary);" id="final-score">0</div>
+                        <div style="font-size:0.8rem; text-transform:uppercase; color:#999;" id="lbl-score-title">Score</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:2rem; font-weight:900; color:var(--primary);" id="final-time">0.0</div>
+                        <div style="font-size:0.8rem; text-transform:uppercase; color:#999;" id="lbl-time-title">Time</div>
+                    </div>
+                </div>
+
+                <div class="leaderboard-box">
+                    <div style="background:#eee; padding:5px; text-align:center; font-size:0.9rem; font-weight:bold; color:#555;">TOP 50</div>
+                    <table>
+                        <tbody id="rank-body"></tbody>
+                    </table>
+                </div>
+
+                <button class="btn btn-primary" onclick="resetGame()" id="lbl-next" style="padding: 10px 40px; font-size:1.2rem;">Next Player</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="interstitial" class="hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:999; display:flex; justify-content:center; align-items:center;">
+        <div id="inter-msg" style="font-size:2.5rem; font-weight:900; color:var(--primary);">Next...</div>
+    </div>
+
+    <script>
+        // --- 設定與資料庫 ---
+        // 確保 DOM 載入後執行初始化
+        window.onload = function() {
+            // 2.5秒後移除開場遮罩 (比 CSS 動畫稍晚一點，確保動畫播完)
+            setTimeout(() => {
+                const overlay = document.getElementById('slogan-overlay');
+                overlay.style.opacity = '0'; // 視覺消失
+                setTimeout(() => {
+                    overlay.style.display = 'none'; // 物理移除 (這步最重要，解決按鈕不能按的問題)
+                }, 500);
+            }, 2500);
+        };
+
+        const questionDB = [
+            { zh: "根據香港法律，騎單車時必須戴上頭盔，否則屬違法？", en: "Is it mandatory by law to wear a helmet while cycling in HK?", a: false },
+            { zh: "單車手轉彎或停車前，必須發出適當的手號。", en: "Cyclists must give hand signals before turning or stopping.", a: true },
+            { zh: "在行人路上騎單車是合法的嗎？", en: "Is it legal to ride a bicycle on a pedestrian footpath?", a: false },
+            { zh: "晚間騎單車，必須展示車頭白燈及車尾紅燈。", en: "You must show a white front light and red rear light at night.", a: true },
+            { zh: "李慧詩(Sarah Lee)是曾奪得奧運獎牌的香港單車運動員。", en: "Sarah Lee is a HK cyclist who won Olympic medals.", a: true },
+            { zh: "普通單車（單人座位）可以運載一名乘客嗎？", en: "Can you carry a passenger on a standard single-seat bicycle?", a: false },
+            { zh: "醉酒騎單車（酒後駕駛）在香港屬於刑事罪行。", en: "Cycling under the influence of alcohol is a criminal offence.", a: true },
+            { zh: "單車手可以不遵守交通紅燈，只要沒有車。", en: "Cyclists can ignore red lights if there are no cars.", a: false },
+            { zh: "香港單車館（具備國際標準賽道）位於將軍澳。", en: "The Hong Kong Velodrome is located in Tseung Kwan O.", a: true },
+            { zh: "騎單車時，可以雙手同時放開手柄嗎？", en: "Is it legal to ride with both hands off the handle bars?", a: false }
+        ];
+
+        const langPack = {
+            zh: { startBtn: "開始遊戲", welcome: "歡迎參加", phName: "請輸入姓名", confirm: "開始挑战", qPrefix: "題目", yes: "⭕ 是", no: "❌ 非", correct: "🎉 正確!", wrong: "❌ 錯誤!", nextQ: "下一題...", lastQ: "最後一題!", gameOver: "挑戰完成", scoreTitle: "分數", timeTitle: "時間", nextPlayer: "下一位", thRank: "排名", thName: "姓名", thScore: "分數", thTime: "時間" },
+            en: { startBtn: "Start Game", welcome: "Welcome", phName: "Enter Name", confirm: "Start", qPrefix: "Q", yes: "⭕ YES", no: "❌ NO", correct: "🎉 Correct!", wrong: "❌ Wrong!", nextQ: "Next...", lastQ: "Last One!", gameOver: "Finished", scoreTitle: "Score", timeTitle: "Time", nextPlayer: "Next Player", thRank: "Rank", thName: "Name", thScore: "Score", thTime: "Time" }
+        };
+
+        // --- 變數 ---
+        let currentLang = null;
+        let currentPlayer = "";
+        let gameQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let canAnswer = false;
+        let timerInterval;
+        let startTime = 0;
+
+        // --- 功能函數 ---
+
+        function selectLanguage(lang) {
+            console.log("Language Selected:", lang); // Debug Log
+            currentLang = lang;
+            
+            // UI 更新
+            document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+            
+            const btnStart = document.getElementById('btn-start');
+            btnStart.disabled = false;
+            btnStart.innerText = langPack[lang].startBtn;
+
+            // 嘗試播放音效 (加了 try-catch 防止報錯卡死)
+            try {
+                const audio = document.getElementById('bgm');
+                audio.volume = 0.2;
+                let playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Audio play prevented automatically (Standard browser policy). User will hear sound on next interaction.");
+                    });
+                }
+            } catch(e) { console.log("Audio Error ignored"); }
+        }
+
+        function goToLogin() {
+            if (!currentLang) return;
+            document.getElementById('lbl-welcome').innerText = langPack[currentLang].welcome;
+            document.getElementById('username').placeholder = langPack[currentLang].phName;
+            document.getElementById('lbl-confirm').innerText = langPack[currentLang].confirm;
+
+            switchScreen('login-screen');
+            setTimeout(() => document.getElementById('username').focus(), 100);
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('username');
+            const name = nameInput.value.trim();
+            if(!name) { nameInput.style.borderBottom = "2px solid red"; return; }
+            nameInput.style.borderBottom = "2px solid var(--primary)";
+
+            currentPlayer = name;
+            // 隨機選 10 題
+            gameQuestions = [...questionDB].sort(()=>0.5-Math.random()).slice(0, 10);
+            currentIndex = 0; score = 0;
+
+            document.getElementById('lbl-q').innerText = langPack[currentLang].qPrefix;
+            document.getElementById('lbl-yes').innerText = langPack[currentLang].yes;
+            document.getElementById('lbl-no').innerText = langPack[currentLang].no;
+
+            switchScreen('game-screen');
+            
+            startTime = Date.now();
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(()=>{
+                const diff = (Date.now() - startTime)/1000;
+                document.getElementById('game-timer').innerText = diff.toFixed(1);
+            }, 100);
+
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            document.getElementById('q-num').innerText = currentIndex + 1;
+            const q = gameQuestions[currentIndex];
+            document.getElementById('question-text').innerText = (currentLang === 'zh') ? q.zh : q.en;
+            
+            const fb = document.getElementById('feedback-text');
+            fb.innerText = "";
+            fb.className = "feedback";
+            canAnswer = true;
+        }
+
+        function submitAnswer(choice) {
+            if(!canAnswer) return;
+            canAnswer = false;
+
+            const correct = gameQuestions[currentIndex].a;
+            const fb = document.getElementById('feedback-text');
+
+            if(choice === correct) {
+                score += 10;
+                fb.innerText = langPack[currentLang].correct;
+                fb.classList.add('fb-correct');
+            } else {
+                fb.innerText = langPack[currentLang].wrong;
+                fb.classList.add('fb-wrong');
+            }
+
+            setTimeout(()=>{
+                currentIndex++;
+                if(currentIndex < 10) {
+                    showInterstitial();
+                } else {
+                    finishGame();
+                }
+            }, 1500); // 縮短等待時間到 1.5秒，節奏快一點
+        }
+
+        function showInterstitial() {
+            const inter = document.getElementById('interstitial');
+            const msg = document.getElementById('inter-msg');
+            inter.classList.remove('hidden');
+            
+            if(currentIndex === 9) {
+                msg.innerText = langPack[currentLang].lastQ;
+                msg.style.color = "var(--error)";
+            } else {
+                msg.innerText = langPack[currentLang].nextQ;
+                msg.style.color = "var(--primary)";
+            }
+
+            setTimeout(()=>{
+                inter.classList.add('hidden');
+                renderQuestion();
+            }, 1000);
+        }
+
+        function finishGame() {
+            clearInterval(timerInterval);
+            const finalTime = ((Date.now() - startTime)/1000).toFixed(2);
+            saveRecord(currentPlayer, score, parseFloat(finalTime));
+
+            document.getElementById('lbl-gameover').innerText = langPack[currentLang].gameOver;
+            document.getElementById('lbl-score-title').innerText = langPack[currentLang].scoreTitle;
+            document.getElementById('lbl-time-title').innerText = langPack[currentLang].timeTitle;
+            document.getElementById('lbl-next').innerText = langPack[currentLang].nextPlayer;
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-time').innerText = finalTime;
+
+            switchScreen('result-screen');
+            renderLeaderboard();
+        }
+
+        function saveRecord(name, score, time) {
+            let data = JSON.parse(localStorage.getItem('mfs_cycling_2026')) || [];
+            data.push({name, score, time});
+            localStorage.setItem('mfs_cycling_2026', JSON.stringify(data));
+        }
+
+        function renderLeaderboard() {
+            let data = JSON.parse(localStorage.getItem('mfs_cycling_2026')) || [];
+            // 排序：分數高優先，分數相同則時間短優先
+            data.sort((a,b) => {
+                if(b.score !== a.score) return b.score - a.score;
+                return a.time - b.time;
+            });
+
+            const tbody = document.getElementById('rank-body');
+            tbody.innerHTML = "";
+            
+            // 標題行
+            const headerRow = `<tr><th style="width:15%">#</th><th>${langPack[currentLang].thName}</th><th>${langPack[currentLang].thScore}</th><th>${langPack[currentLang].thTime}</th></tr>`;
+            tbody.innerHTML = headerRow;
+
+            data.slice(0, 50).forEach((d, i)=>{
+                const tr = document.createElement('tr');
+                if(i===0) tr.classList.add('rank-1');
+                tr.innerHTML = `<td>${i+1}</td><td>${d.name}</td><td>${d.score}</td><td>${d.time}s</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetGame() {
+            document.getElementById('username').value = "";
+            currentLang = null;
+            document.getElementById('btn-zh').classList.remove('active');
+            document.getElementById('btn-en').classList.remove('active');
+            const btnStart = document.getElementById('btn-start');
+            btnStart.disabled = true;
+            btnStart.innerText = "開始遊戲 Start";
+            
+            switchScreen('home-screen');
+        }
+
+        function switchScreen(screenId) {
+            ['home-screen', 'login-screen', 'game-screen', 'result-screen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function clearData() {
+            if(prompt("Reset Password:") === "8888") {
+                if(confirm("Delete all records?")) {
+                    localStorage.removeItem('mfs_cycling_2026');
+                    alert("Deleted.");
+                    renderLeaderboard();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
